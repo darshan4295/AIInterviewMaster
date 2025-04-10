@@ -52,12 +52,14 @@ from routes.candidate_routes import candidate_bp
 from routes.interview_routes import interview_bp
 from routes.assessment_routes import assessment_bp
 from routes.coding_routes import coding_bp
+from routes.job_routes import job_bp
 
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(candidate_bp, url_prefix='/api/candidates')
 app.register_blueprint(interview_bp, url_prefix='/api/interviews')
 app.register_blueprint(assessment_bp, url_prefix='/api/assessments')
 app.register_blueprint(coding_bp, url_prefix='/api/coding')
+app.register_blueprint(job_bp, url_prefix='/api/jobs')
 
 @app.route('/')
 def index():
