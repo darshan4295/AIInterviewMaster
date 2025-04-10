@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Interview Platform API Documentation</title>
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4.19.0/swagger-ui-bundle.js"></script>
+    <style>
+        .swagger-ui {
+            margin-top: 20px;
+        }
+        .swagger-ui .topbar {
+            display: none;
+        }
+        .swagger-ui .info .title {
+            color: var(--bs-light);
+        }
+        .swagger-ui .info .description {
+            color: var(--bs-light);
+        }
+        .swagger-ui .opblock .opblock-summary-operation-id, 
+        .swagger-ui .opblock .opblock-summary-path, 
+        .swagger-ui .opblock .opblock-summary-description {
+            color: var(--bs-light);
+        }
+        body {
+            background-color: var(--bs-dark);
+            color: var(--bs-light);
+        }
+        .header {
+            background-color: var(--bs-dark);
+            padding: 20px;
+            border-bottom: 1px solid var(--bs-secondary);
+        }
+        .container {
+            padding: 20px;
+        }
+    </style>
+</head>
+<body data-bs-theme="dark">
+    <div class="header">
+        <div class="container">
+            <h1>AI-Powered Interview Platform API</h1>
+            <p class="lead">Comprehensive API documentation for the AI Interview Platform</p>
+        </div>
+    </div>
+    <div class="container">
+        <div id="swagger-ui"></div>
+    </div>
+
+    <script>
+        window.onload = function() {
+            SwaggerUIBundle({
+                url: "/static/swagger.json",
+                dom_id: '#swagger-ui',
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIBundle.SwaggerUIStandalonePreset
+                ],
+                layout: "BaseLayout",
+                deepLinking: true,
+                docExpansion: 'none',
+                tagsSorter: 'alpha',
+                operationsSorter: 'alpha',
+                defaultModelsExpandDepth: 1,
+                defaultModelExpandDepth: 1,
+                syntaxHighlight: {
+                    theme: 'monokai'
+                }
+            });
+        };
+    </script>
+</body>
+</html>
