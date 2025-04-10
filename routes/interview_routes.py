@@ -1,9 +1,12 @@
+import logging
 from flask import Blueprint, request, jsonify
 from datetime import datetime
 from utils.auth import token_required, recruiter_required
-from utils.ai_assessment import analyze_video_interview, generate_interview_questions
-from utils.scoring import calculate_video_interview_score
+from utils.ai_assessment import analyze_video_interview, generate_interview_questions, evaluate_cultural_fit
+from utils.scoring import calculate_video_interview_score, calculate_cultural_fit_score
 from models import Interview, VideoInterview, JobPosition, Candidate, Recruiter, db
+
+logger = logging.getLogger(__name__)
 
 interview_bp = Blueprint('interview', __name__)
 
@@ -407,6 +410,83 @@ def add_video_interview(current_user, interview_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": f"Failed to add video interview: {str(e)}"}), 500
+
+@interview_bp.route('/<int:interview_id>/cultural-fit', methods=['POST'])
+@recruiter_required
+def evaluate_cultural_fit_endpoint(current_user, interview_id):
+    """
+    Evaluate cultural fit based on interview transcript
+    
+    Authorization header:
+    Bearer <token>
+    
+    Path parameters:
+    - interview_id: ID of the interview
+    
+    Request body:
+    {
+        "transcript": "Interview transcript text...",
+        "company_values": ["Innovation", "Teamwork", "Customer Focus"],
+        "team_dynamics": {
+            "communication_style": "Direct and transparent",
+            "work_environment": "Fast-paced and collaborative"
+        }
+    }
+    """
+    data = request.json
+    
+    # Validate required fields
+    if 'transcript' not in data or not data['transcript']:
+        return jsonify({"error": "Missing required field: transcript"}), 400
+    
+    # Get recruiter profile
+    recruiter = Recruiter.query.filter_by(user_id=current_user.id).first()
+    if not recruiter:
+        return jsonify({"error": "Recruiter profile not found"}), 404
+    
+    # Get interview
+    interview = Interview.query.get(interview_id)
+    if not interview:
+        return jsonify({"error": "Interview not found"}), 404
+    
+    # Ensure recruiter has access to this interview
+    if interview.recruiter_id != recruiter.id:
+        return jsonify({"error": "Unauthorized access"}), 403
+    
+    try:
+        # Extract company values and team dynamics
+        company_values = data.get('company_values', None)
+        team_dynamics = data.get('team_dynamics', None)
+        
+        # Evaluate cultural fit
+        cultural_fit_result = evaluate_cultural_fit(
+            data['transcript'], 
+            company_values=company_values, 
+            team_dynamics=team_dynamics
+        )
+        
+        if "error" in cultural_fit_result:
+            return jsonify({"error": cultural_fit_result["error"]}), 400
+        
+        # Calculate score from evaluation
+        scores = calculate_cultural_fit_score(cultural_fit_result)
+        
+        # Update interview if needed
+        if not interview.overall_score and scores.get('overall_cultural_fit_score', 0) > 0:
+            interview.overall_score = scores['overall_cultural_fit_score']
+            db.session.commit()
+        
+        response_data = {
+            "interview_id": interview_id,
+            "cultural_fit_evaluation": cultural_fit_result,
+            "scores": scores
+        }
+        
+        return jsonify(response_data), 200
+    
+    except Exception as e:
+        logger.error(f"Error evaluating cultural fit: {str(e)}")
+        return jsonify({"error": f"Failed to evaluate cultural fit: {str(e)}"}), 500
 
 @interview_bp.route('/<int:interview_id>/questions', methods=['POST'])
 @recruiter_required

@@ -148,6 +148,99 @@ def calculate_coding_challenge_score(code_analysis, test_results):
         logger.error(f"Error calculating coding challenge score: {str(e)}")
         return {"error": str(e), "overall_coding_score": 0}
 
+def calculate_cultural_fit_score(cultural_fit_analysis):
+    """
+    Calculate score for cultural fit evaluation
+    
+    Args:
+        cultural_fit_analysis (dict): Analysis from cultural fit evaluation
+        
+    Returns:
+        dict: Score components and overall cultural fit score
+    """
+    try:
+        # Initialize default score components
+        scores = {
+            "value_alignment_score": 0,
+            "communication_style_score": 0,
+            "team_collaboration_score": 0,
+            "adaptability_score": 0,
+            "overall_cultural_fit_score": 0
+        }
+        
+        # Extract scores from analysis
+        if isinstance(cultural_fit_analysis, dict):
+            # Main cultural fit score
+            scores["overall_cultural_fit_score"] = cultural_fit_analysis.get("cultural_fit_score", 0)
+            
+            # Component scores
+            if "value_alignment" in cultural_fit_analysis and isinstance(cultural_fit_analysis["value_alignment"], dict):
+                scores["value_alignment_score"] = cultural_fit_analysis["value_alignment"].get("score", 0)
+            
+            if "team_collaboration" in cultural_fit_analysis and isinstance(cultural_fit_analysis["team_collaboration"], dict):
+                scores["team_collaboration_score"] = cultural_fit_analysis["team_collaboration"].get("score", 0)
+            
+            if "adaptability" in cultural_fit_analysis and isinstance(cultural_fit_analysis["adaptability"], dict):
+                scores["adaptability_score"] = cultural_fit_analysis["adaptability"].get("score", 0)
+            
+            # Derive communication style score if not directly provided
+            if "communication_style" in cultural_fit_analysis and isinstance(cultural_fit_analysis["communication_style"], dict):
+                # If not directly provided, estimate from strengths vs. areas for improvement
+                strengths = cultural_fit_analysis["communication_style"].get("strengths", [])
+                areas_for_improvement = cultural_fit_analysis["communication_style"].get("areas_for_improvement", [])
+                
+                if len(strengths) > 0 or len(areas_for_improvement) > 0:
+                    ratio = len(strengths) / (len(strengths) + len(areas_for_improvement)) if (len(strengths) + len(areas_for_improvement)) > 0 else 0.5
+                    scores["communication_style_score"] = min(1.0, max(0.0, ratio))
+            
+            # If overall score is not provided, calculate it from components
+            if scores["overall_cultural_fit_score"] == 0 and any([
+                scores["value_alignment_score"] > 0,
+                scores["communication_style_score"] > 0,
+                scores["team_collaboration_score"] > 0,
+                scores["adaptability_score"] > 0
+            ]):
+                weights = SCORING_CONFIG.get("cultural_fit_weights", {
+                    "value_alignment": 0.4,
+                    "communication_style": 0.2,
+                    "team_collaboration": 0.3,
+                    "adaptability": 0.1
+                })
+                
+                weighted_scores = [
+                    scores["value_alignment_score"] * weights["value_alignment"] if scores["value_alignment_score"] > 0 else 0,
+                    scores["communication_style_score"] * weights["communication_style"] if scores["communication_style_score"] > 0 else 0,
+                    scores["team_collaboration_score"] * weights["team_collaboration"] if scores["team_collaboration_score"] > 0 else 0,
+                    scores["adaptability_score"] * weights["adaptability"] if scores["adaptability_score"] > 0 else 0
+                ]
+                
+                # Only consider non-zero scores for overall calculation
+                non_zero_scores = [score for score in weighted_scores if score > 0]
+                if non_zero_scores:
+                    # Normalize by the sum of weights used
+                    used_weights = sum([
+                        weights["value_alignment"] if scores["value_alignment_score"] > 0 else 0,
+                        weights["communication_style"] if scores["communication_style_score"] > 0 else 0,
+                        weights["team_collaboration"] if scores["team_collaboration_score"] > 0 else 0,
+                        weights["adaptability"] if scores["adaptability_score"] > 0 else 0
+                    ])
+                    
+                    if used_weights > 0:
+                        scores["overall_cultural_fit_score"] = sum(non_zero_scores) / used_weights
+        
+        return scores
+    
+    except Exception as e:
+        logger.error(f"Error calculating cultural fit score: {str(e)}")
+        return {
+            "value_alignment_score": 0,
+            "communication_style_score": 0,
+            "team_collaboration_score": 0,
+            "adaptability_score": 0,
+            "overall_cultural_fit_score": 0,
+            "error": str(e)
+        }
+
 def calculate_managerial_round_score(managerial_analysis):
     """
     Calculate managerial round score based on leadership, behavior, and cultural fit
